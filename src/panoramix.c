@@ -7,6 +7,7 @@
 
 #include "panoramix.h"
 
+#include <errno.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -30,11 +31,14 @@ static bool parse_args(int argc, char **argv, gaule_t *gaule)
         fprintf(stderr, "%s", HELP_MSG);
         return false;
     }
+    errno = 0;
     for (int i = 1; i < argc; i++) {
         char *ptr = argv[i];
         long tmp = strtol(argv[i], &ptr, 10);
-        if (tmp <= 0 || *ptr != '\0') {
-            fprintf(stderr, "Invalid argument: %s\n", argv[i]);
+        if (tmp <= 0 || *ptr != '\0' || errno != 0) {
+            fprintf(
+                stderr, "Invalid argument: `%s` %s\n", argv[i],
+                (errno) ? strerror(errno) : "Not a number");
             fprintf(stderr, "%s", HELP_MSG);
             return false;
         }
