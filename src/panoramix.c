@@ -11,5 +11,5 @@
 
 int panoramix(UNUSED int argc, UNUSED char **argv)
 {
-    return 0;
+    return Valid;
 }

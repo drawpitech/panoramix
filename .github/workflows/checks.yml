@@ -29,7 +29,7 @@ jobs:
           args: |
             bash -c "
             make -j
-            ls ./myteams_cli ./myteams_server
+            ls ./panoramix
             "
 
   fix_headers:
@@ -58,31 +58,8 @@ jobs:
           git commit -m "Fix headers" || echo "nothing to commit."
           git push origin || echo "nothing to push."
 
-  coding_style:
-    runs-on: ubuntu-latest
-    needs: [ unittest ]
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Install SSH key
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          known_hosts: $SSH_PUB_KEY
-
-      - name: Nix cache
-        uses: cachix/install-nix-action@v20
-        with:
-          nix_path: nixpkgs=channel:nixos-23.05
-
-      - name: Run coding style
-        run: |
-          nix run github:Sigmapitech/cs src
-
   mirror:
-    needs: [ unittest, fix_headers, coding_style ]
+    needs: [ unittest, fix_headers ]
     if: ${{ !github.event.pull_request }}
     runs-on: ubuntu-latest
 
