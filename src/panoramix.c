@@ -53,31 +53,34 @@ static bool parse_args(int argc, char **argv, gaule_t *gaule)
 
 static void *run_villager(villager_t *villager)
 {
-    DEBUG("Running villager [%lu]", villager->id);
+    DEBUG("[%lu]\tRunning villager", villager->id);
+    printf("Villager %lu: Going into battle!\n", villager->id);
+
+    printf("Villager %lu: I'm going to sleep now.\n", villager->id);
+    DEBUG("[%lu]\tExit villager", villager->id);
     return villager;
 }
 
 static int gaulois_land(gaule_t *gaule)
 {
-    villager_t *vil = NULL;
-
     if (pthread_mutex_init(&gaule->mutex, NULL) != 0) {
         perror("mutex");
         return Error;
     }
+
     for (size_t i = 0; i < gaule->nb_villagers; i++) {
-        vil = gaule->villagers + i;
-        *vil = (villager_t){
-            .id = i,
-            .gaule = gaule,
-        };
+        villager_t *vil = gaule->villagers + i;
+        *vil = (villager_t){.id = i, .gaule = gaule};
+
         if (pthread_create(
-                &vil->thread, NULL, (void *(*)(void *)) & run_villager, vil)) {
-            perror("pthread_create");
-            return Error;
-        }
-        pthread_join(vil->thread, NULL);
+                &vil->thread, NULL, (void *(*)(void *)) & run_villager, vil))
+            return perror("pthread_create"), Error;
     }
+
+    for (size_t i = 0; i < gaule->nb_villagers; i++)
+        if (pthread_join(gaule->villagers[i].thread, NULL))
+            return perror("pthread_join"), Error;
+
     pthread_mutex_destroy(&gaule->mutex);
     return Valid;
 }
@@ -88,12 +91,14 @@ int panoramix(int argc, char **argv)
 
     if (!parse_args(argc, argv, &gaule))
         return Error;
+
     gaule.villagers = malloc(gaule.nb_villagers * sizeof *gaule.villagers);
     if (gaule.villagers == NULL) {
         perror("malloc");
         return Error;
     }
     memset(gaule.villagers, 0, gaule.nb_villagers * sizeof *gaule.villagers);
+
     int ret = gaulois_land(&gaule);
     free(gaule.villagers);
     return ret;
