@@ -8,12 +8,17 @@
 #pragma once
 
 #include <pthread.h>
+#include <unistd.h>
+
+typedef struct gaule_s gaule_t;
 
 typedef struct {
+    size_t id;
     pthread_t thread;
+    gaule_t *gaule;
 } villager_t;
 
-typedef struct {
+typedef struct gaule_s {
     // Those variables MUST NOT be moved in the structure
     unsigned long nb_villagers;
     unsigned long pot_size;

@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "debug.h"
@@ -46,18 +47,50 @@ static bool parse_args(int argc, char **argv, gaule_t *gaule)
     return true;
 }
 
+static void *run_villager(villager_t *villager)
+{
+    DEBUG("Running villager [%lu]", villager->id);
+    return villager;
+}
+
+static int gaulois_land(gaule_t *gaule)
+{
+    villager_t *vil = NULL;
+
+    if (pthread_mutex_init(&gaule->mutex, NULL) != 0) {
+        perror("mutex");
+        return Error;
+    }
+    for (size_t i = 0; i < gaule->nb_villagers; i++) {
+        vil = gaule->villagers + i;
+        *vil = (villager_t){
+            .id = i,
+            .gaule = gaule,
+        };
+        if (pthread_create(
+                &vil->thread, NULL, (void *(*)(void *)) & run_villager, vil)) {
+            perror("pthread_create");
+            return Error;
+        }
+        pthread_join(vil->thread, NULL);
+    }
+    pthread_mutex_destroy(&gaule->mutex);
+    return Valid;
+}
+
 int panoramix(int argc, char **argv)
 {
-    gaule_t pano = {0};
+    gaule_t gaule = {0};
 
-    if (!parse_args(argc, argv, &pano))
+    if (!parse_args(argc, argv, &gaule))
         return Error;
-    pano.villagers = malloc(pano.nb_villagers * sizeof *pano.villagers);
-    if (pano.villagers == NULL) {
+    gaule.villagers = malloc(gaule.nb_villagers * sizeof *gaule.villagers);
+    if (gaule.villagers == NULL) {
         perror("malloc");
         return Error;
     }
-
-    free(pano.villagers);
-    return Valid;
+    memset(gaule.villagers, 0, gaule.nb_villagers * sizeof *gaule.villagers);
+    int ret = gaulois_land(&gaule);
+    free(gaule.villagers);
+    return ret;
 }
