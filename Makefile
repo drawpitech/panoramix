@@ -95,7 +95,7 @@ $(BUILD_DIR)/asan/%.o: %.c
 	@ $(ECHO) "[${C_BOLD}${C_RED}CC${C_RESET}] $^"
 	@ $(CC) -o $@ -c $< $(CFLAGS) $(LDLIBS) $(DEPS_FLAGS) || $(DIE)
 
-$(ASAN_NAME): CFLAGS += -fsanitize=address,leak,undefined
+$(ASAN_NAME): CFLAGS += -fsanitize=thread,undefined
 $(ASAN_NAME): CFLAGS += -fanalyzer
 $(ASAN_NAME): CFLAGS += -g3 -D DEBUG_MODE
 $(ASAN_NAME): $(ASAN_OBJ)
