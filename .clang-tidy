@@ -1,0 +1,20 @@
+Checks: "-*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  misc-*,
+  -misc-no-recursion,
+  performance-*,
+  portability-*,
+  readability-*,
+  -readability-braces-around-statements,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  clang-analyzer-*,
+  llvm-*,
+  llvmlibc-*,
+  -llvmlibc-restrict-system-libc-headers,
+"
+
+CheckOptions:
+  - key:   readability-function-cognitive-complexity.IgnoreMacros
+    value: true

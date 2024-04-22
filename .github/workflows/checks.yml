@@ -1,0 +1,103 @@
+name: Checks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+env:
+  SSH_PUB_KEY:
+    ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH9KSzBv3mfRAq7tOOU6/J9htV/+UTwro8q/JkO97HwO clement2104.boillot@gmail.com
+  GH_BOT_ACC_EMAIL:
+    69208565+github-actions[bot]@users.noreply.github.com
+  GH_BOT_ACC_NAME:
+    github-actions[bot]
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Compiles
+        uses: docker://epitechcontent/epitest-docker
+        with:
+          args: |
+            bash -c "
+            make -j
+            ls ./myteams_cli ./myteams_server
+            "
+
+  fix_headers:
+    runs-on: ubuntu-latest
+    needs: [ unittest ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Nix cache
+        uses: cachix/install-nix-action@v20
+        with:
+          nix_path: nixpkgs=channel:nixos-23.05
+
+      - name: Setup Git
+        run: |
+          git config --local user.email $GH_BOT_ACC_EMAIL
+          git config --local user.name $GH_BOT_ACC_NAME
+          git fetch --unshallow origin
+
+      - name: Fix headers
+        run: |
+          nix run github:drawpitech/EpiHeader -- --name "panoramix"
+          git add .
+          git commit -m "Fix headers" || echo "nothing to commit."
+          git push origin || echo "nothing to push."
+
+  coding_style:
+    runs-on: ubuntu-latest
+    needs: [ unittest ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: $SSH_PUB_KEY
+
+      - name: Nix cache
+        uses: cachix/install-nix-action@v20
+        with:
+          nix_path: nixpkgs=channel:nixos-23.05
+
+      - name: Run coding style
+        run: |
+          nix run github:Sigmapitech/cs src
+
+  mirror:
+    needs: [ unittest, fix_headers, coding_style ]
+    if: ${{ !github.event.pull_request }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: $SSH_PUB_KEY
+
+      - name: Push to epitech
+        run: |
+          git fetch --unshallow origin
+          git remote add epitech "${{ secrets.MIRROR_REPO }}"
+          git push epitech --force

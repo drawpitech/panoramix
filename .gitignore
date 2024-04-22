@@ -1,0 +1,27 @@
+# Binaries
+*.out
+/panoramix
+/asan
+/prof
+/unit_tests
+
+# Compilation
+.build/
+*.a
+*.o
+*.d
+*.so
+/result
+.cache/
+
+# Editors junk
+*~
+\#*#
+*.swp
+*.swo
+
+# Reports
+core.*
+*.log
+*.gcda
+*.gcno
