@@ -6,8 +6,8 @@
 ##
 
 # ↓ Basic variables
-CC := gcc
-CFLAGS := -std=gnu11 -W -Wall -Wextra -Wunused -Wpedantic
+CC ?= gcc
+CFLAGS := -std=gnu2x -W -Wall -Wextra -Wunused -Wpedantic
 CFLAGS += -Wundef -Wshadow -Wcast-align
 CFLAGS += -Wstrict-prototypes -Wmissing-prototypes
 CFLAGS += -Waggregate-return -Wcast-qual
@@ -15,9 +15,10 @@ CFLAGS += -Wunreachable-code
 CFLAGS += -U_FORTIFY_SOURCE
 CFLAGS += -iquote ./src
 LDFLAGS :=
+LDLIBS := -pthread
 
 # ↓ Binaries
-NAME := panoramix
+NAME ?= panoramix
 TEST_NAME := unit_tests
 ASAN_NAME := asan
 PROF_NAME := prof
@@ -26,7 +27,6 @@ PROF_NAME := prof
 SRC := $(shell find ./src -name '*.c')
 
 # Tests files
-VPATH += tests
 TEST_SRC := $(subst ./src/main.c,,$(SRC))
 TEST_SRC += $(shell find ./tests -name '*.c')
 
@@ -56,6 +56,7 @@ C_BLUE := \e[34m
 C_PURPLE := \e[35m
 C_CYAN := \e[36m
 
+.DEFAULT_GOAL := all
 .PHONY: all
 all: $(NAME)
 
@@ -63,25 +64,26 @@ all: $(NAME)
 $(BUILD_DIR)/source/%.o: %.c
 	@ mkdir -p $(dir $@)
 	@ $(ECHO) "[${C_BOLD}${C_RED}CC${C_RESET}] $^"
-	@ $(CC) -o $@ -c $< $(LDFLAGS) $(CFLAGS) $(DEPS_FLAGS) || $(DIE)
+	@ $(CC) -o $@ -c $< $(CFLAGS) $(LDLIBS) $(DEPS_FLAGS) || $(DIE)
 
+$(NAME): CFLAGS += -flto -O3
 $(NAME): $(OBJ)
 	@ $(ECHO) "[${C_BOLD}${C_YELLOW}CC${C_RESET}] ${C_GREEN}$@${C_RESET}"
-	@ $(CC) -o $@ $^ $(LDFLAGS) || $(DIE)
+	@ $(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS) $(LDLIBS) || $(DIE)
 
 # ↓ Unit tests
 $(BUILD_DIR)/tests/%.o: %.c
 	@ mkdir -p $(dir $@)
 	@ $(ECHO) "[${C_BOLD}${C_RED}CC${C_RESET}] $^"
-	@ $(CC) -o $@ -c $< $(LDFLAGS) $(CFLAGS) $(DEPS_FLAGS) || $(DIE)
+	@ $(CC) -o $@ -c $< $(CFLAGS) $(LDLIBS) $(DEPS_FLAGS) || $(DIE)
 
 ifneq ($(NO_COV), 1)
-$(TEST_NAME): LDFLAGS += -g3 --coverage
+$(TEST_NAME): CFLAGS += -g3 --coverage
 endif
-$(TEST_NAME): LDFLAGS += -lcriterion
+$(TEST_NAME): LDLIBS += -lcriterion
 $(TEST_NAME): $(TEST_OBJ)
 	@ $(ECHO) "[${C_BOLD}${C_YELLOW}CC${C_RESET}] ${C_GREEN}$@${C_RESET}"
-	@ $(CC) -o $@ $^ $(LDFLAGS) || $(DIE)
+	@ $(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS) $(LDLIBS) || $(DIE)
 
 .PHONY: tests_run
 tests_run: $(TEST_NAME)
@@ -91,29 +93,29 @@ tests_run: $(TEST_NAME)
 $(BUILD_DIR)/asan/%.o: %.c
 	@ mkdir -p $(dir $@)
 	@ $(ECHO) "[${C_BOLD}${C_RED}CC${C_RESET}] $^"
-	@ $(CC) -o $@ -c $< $(LDFLAGS) $(CFLAGS) $(DEPS_FLAGS) || $(DIE)
+	@ $(CC) -o $@ -c $< $(CFLAGS) $(LDLIBS) $(DEPS_FLAGS) || $(DIE)
 
-$(ASAN_NAME): LDFLAGS += -fsanitize=address,leak,undefined -g3
-$(ASAN_NAME): LDFLAGS += -fanalyzer
-$(ASAN_NAME): CFLAGS += -D DEBUG_MODE
+$(ASAN_NAME): CFLAGS += -fsanitize=address,leak,undefined
+$(ASAN_NAME): CFLAGS += -fanalyzer
+$(ASAN_NAME): CFLAGS += -g3 -D DEBUG_MODE
 $(ASAN_NAME): $(ASAN_OBJ)
 	@ $(ECHO) "[${C_BOLD}${C_YELLOW}CC${C_RESET}] ${C_GREEN}$@${C_RESET}"
-	@ $(CC) -o $@ $^ $(LDFLAGS) || $(DIE)
+	@ $(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS) $(LDLIBS) || $(DIE)
 
 # ↓ Profiler
 $(BUILD_DIR)/prof/%.o: %.c
 	@ mkdir -p $(dir $@)
 	@ $(ECHO) "[${C_BOLD}${C_RED}CC${C_RESET}] $^"
-	@ $(CC) -o $@ -c $< $(LDFLAGS) $(CFLAGS) $(DEPS_FLAGS) || $(DIE)
+	@ $(CC) -o $@ -c $< $(CFLAGS) $(LDLIBS) $(DEPS_FLAGS) || $(DIE)
 
-$(PROF_NAME): LDFLAGS += -pg
+$(PROF_NAME): LDLIBS += -pg
 $(PROF_NAME): $(PROF_OBJ)
 	@ $(ECHO) "[${C_BOLD}${C_YELLOW}CC${C_RESET}] ${C_GREEN}$@${C_RESET}"
-	@ $(CC) -o $@ $^ $(LDFLAGS) || $(DIE)
+	@ $(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS) $(LDLIBS) || $(DIE)
 
 # ↓ Coverage
 .PHONY: cov
-cov: GCOVR_FLAGS := --exclude bonus/
+cov: GCOVR_FLAGS += --exclude bonus/
 cov: GCOVR_FLAGS += --exclude tests/
 cov:
 	@ gcovr $(GCOVR_FLAGS)

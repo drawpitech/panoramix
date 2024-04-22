@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <bits/pthreadtypes.h>
+#include <pthread.h>
 
 typedef struct {
     pthread_t thread;
