@@ -16,6 +16,8 @@ typedef struct {
     size_t id;
     pthread_t thread;
     gaule_t *gaule;
+
+    unsigned long fights;
 } villager_t;
 
 typedef struct gaule_s {
