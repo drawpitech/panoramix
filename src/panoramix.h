@@ -32,7 +32,6 @@ typedef struct gaule_s {
     villager_t *villagers;
     pthread_t tdruid;
 
-    // 👉 👈
     sem_t sem_druid;
     sem_t sem_villagers;
 
