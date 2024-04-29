@@ -8,6 +8,7 @@
 #pragma once
 
 #include <pthread.h>
+#include <semaphore.h>
 #include <unistd.h>
 
 typedef struct gaule_s gaule_t;
@@ -30,6 +31,13 @@ typedef struct gaule_s {
     pthread_mutex_t mutex;
     villager_t *villagers;
     pthread_t tdruid;
+
+    // 👉 👈
+    sem_t sem_druid;
+    sem_t sem_villagers;
+
+    unsigned long pot;
+    unsigned long refills;
 } gaule_t;
 
 int panoramix(int argc, char **argv);

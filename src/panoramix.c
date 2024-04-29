@@ -57,17 +57,52 @@ static void *run_villager(villager_t *villager)
     printf("Villager %lu: Going into battle!\n", villager->id);
 
     while (villager->fights < villager->gaule->nb_fights) {
+        // drink le water
         pthread_mutex_lock(&villager->gaule->mutex);
-        villager->fights++;
-        /* villager->gaule->pot_size--; */
         printf(
             "Villager %lu: I need a drink... I see %lu servings left.\n",
-            villager->id, villager->gaule->pot_size);
+            villager->id, villager->gaule->pot);
+
+        if (villager->gaule->pot == 0) {
+            printf(
+                "Villager %lu: Hey Pano wake up! We need more potion.\n",
+                villager->id);
+            sem_post(&villager->gaule->sem_druid);
+            sem_wait(&villager->gaule->sem_villagers);
+        }
+        villager->gaule->pot--;
         pthread_mutex_unlock(&villager->gaule->mutex);
+
+        // bagarre
+        villager->fights++;
+        printf(
+            "Villager %lu: Take that roman scum! Only %lu left.\n",
+            villager->id, villager->gaule->nb_fights - villager->fights);
     }
 
+    // a mimir
     printf("Villager %lu: I'm going to sleep now.\n", villager->id);
     return villager;
+}
+
+static void *run_druid(gaule_t *gaule)
+{
+    printf("Druid: I'm ready... but sleepy...\n");
+    while (true) {
+        sem_wait(&gaule->sem_druid);
+        if (gaule->refills >= gaule->nb_refills) {
+            printf("Druid: I'm out of viscum. I'm going back to... zZz\n");
+            break;
+        }
+        gaule->pot = gaule->pot_size;
+        gaule->refills++;
+        printf(
+            "Druid: Ah! Yes, yes, I'm awake! Working on it! Beware I can "
+            "only make %lu more refills after this one.\n",
+            gaule->nb_refills - gaule->refills);
+        sem_post(&gaule->sem_villagers);
+    }
+    return gaule;
 }
 
 int panoramix(int argc, char **argv)
@@ -85,7 +120,12 @@ int panoramix(int argc, char **argv)
     // Initalize mutex and villagers
     if (pthread_mutex_init(&gaule.mutex, NULL) != 0)
         return perror("mutex"), Error;
-    pthread_mutex_lock(&gaule.mutex);
+    if (sem_init(&gaule.sem_druid, 0, 0) == -1 ||
+        sem_init(&gaule.sem_villagers, 0, 0) == -1)
+        return perror("sem_init"), Error;
+
+    gaule.pot = gaule.pot_size;
+
     for (size_t i = 0; i < gaule.nb_villagers; i++) {
         villager_t *vil = gaule.villagers + i;
         *vil = (villager_t){.id = i, .gaule = &gaule};
@@ -93,10 +133,20 @@ int panoramix(int argc, char **argv)
                 &vil->thread, NULL, (void *(*)(void *)) & run_villager, vil))
             return perror("pthread_create"), Error;
     }
-    pthread_mutex_unlock(&gaule.mutex);
+
+    // drouid
+    pthread_t druid = {0};
+    if (pthread_create(&druid, NULL, (void *(*)(void *)) & run_druid, &gaule))
+        return perror("pthread_create"), Error;
+
+    // catch me if you can
     for (size_t i = 0; i < gaule.nb_villagers; i++)
         if (pthread_join(gaule.villagers[i].thread, NULL))
             return perror("pthread_join"), Error;
+
+    pthread_cancel(druid);
+    if (pthread_join(druid, NULL))
+        return perror("pthread_join"), Error;
 
     pthread_mutex_destroy(&gaule.mutex);
     free(gaule.villagers);
