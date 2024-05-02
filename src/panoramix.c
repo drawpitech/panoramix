@@ -44,22 +44,35 @@ static bool parse_args(int argc, char **argv, gaule_t *gaule)
     return true;
 }
 
+static bool villager_glou_glou(villager_t *villager)
+{
+    printf("Villager %lu: I need a drink... I see %lu servings left.\n",
+            villager->id, villager->gaule->pot);
+    if (villager->gaule->pot == 0) {
+        if (!villager->gaule->druid_awake)
+            return false;
+        printf("Villager %lu: Hey Pano wake up! We need more potion.\n",
+                villager->id);
+        sem_post(&villager->gaule->sem_druid);
+        sem_wait(&villager->gaule->sem_villagers);
+        if (!villager->gaule->druid_awake)
+            return false;
+    }
+    villager->gaule->pot -= 1;
+    return true;
+}
+
 static void *run_villager(villager_t *villager)
 {
     printf("Villager %lu: Going into battle!\n", villager->id);
     while (villager->fights < villager->gaule->nb_fights) {
         pthread_mutex_lock(&villager->gaule->mutex);
-        printf("Villager %lu: I need a drink... I see %lu servings left.\n",
-            villager->id, villager->gaule->pot);
-        if (villager->gaule->pot == 0) {
-            printf("Villager %lu: Hey Pano wake up! We need more potion.\n",
-                villager->id);
-            sem_post(&villager->gaule->sem_druid);
-            sem_wait(&villager->gaule->sem_villagers);
+        if (!villager_glou_glou(villager)) {
+            pthread_mutex_unlock(&villager->gaule->mutex);
+            return NULL;
         }
-        villager->gaule->pot--;
         pthread_mutex_unlock(&villager->gaule->mutex);
-        villager->fights++;
+        villager->fights += 1;
         printf("Villager %lu: Take that roman scum! Only %lu left.\n",
             villager->id, villager->gaule->nb_fights - villager->fights);
     }
@@ -74,7 +87,9 @@ static void *run_drouid(gaule_t *gaule)
         sem_wait(&gaule->sem_druid);
         if (gaule->refills >= gaule->nb_refills) {
             printf("Druid: I'm out of viscum. I'm going back to... zZz\n");
-            break;
+            gaule->druid_awake = false;
+            sem_post(&gaule->sem_villagers);
+            return NULL;
         }
         gaule->pot = gaule->pot_size;
         gaule->refills++;
@@ -126,6 +141,7 @@ int panoramix(int argc, char **argv)
 
     if (!parse_args(argc, argv, &gaule) || summon_gaule(&gaule) == NULL)
         return Error;
+    gaule.druid_awake = true;
     for (size_t i = 0; i < gaule.nb_villagers; i++) {
         vil = gaule.villagers + i;
         *vil = (villager_t){.id = i, .gaule = &gaule};

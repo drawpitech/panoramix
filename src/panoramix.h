@@ -9,6 +9,7 @@
 
 #include <pthread.h>
 #include <semaphore.h>
+#include <stdbool.h>
 #include <unistd.h>
 
 typedef struct gaule_s gaule_t;
@@ -31,6 +32,7 @@ typedef struct gaule_s {
     pthread_mutex_t mutex;
     villager_t *villagers;
     pthread_t tdruid;
+    bool druid_awake;
 
     sem_t sem_druid;
     sem_t sem_villagers;
