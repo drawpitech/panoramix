@@ -69,7 +69,7 @@ static void *run_villager(villager_t *villager)
         pthread_mutex_lock(&villager->gaule->mutex);
         if (!villager_glou_glou(villager)) {
             pthread_mutex_unlock(&villager->gaule->mutex);
-            return NULL;
+            break;
         }
         pthread_mutex_unlock(&villager->gaule->mutex);
         villager->fights += 1;
