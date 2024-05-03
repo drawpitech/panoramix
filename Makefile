@@ -67,6 +67,7 @@ $(BUILD_DIR)/source/%.o: %.c
 	@ $(CC) -o $@ -c $< $(CFLAGS) $(LDLIBS) $(DEPS_FLAGS) || $(DIE)
 
 $(NAME): CFLAGS += -flto -O3
+$(NAME): CFLAGS += -march=native -mtune=native
 $(NAME): $(OBJ)
 	@ $(ECHO) "[${C_BOLD}${C_YELLOW}CC${C_RESET}] ${C_GREEN}$@${C_RESET}"
 	@ $(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS) $(LDLIBS) || $(DIE)
