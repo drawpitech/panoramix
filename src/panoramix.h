@@ -24,21 +24,20 @@ typedef struct {
 
 typedef struct gaule_s {
     // Those variables MUST NOT be moved in the structure
-    unsigned long nb_villagers;
-    unsigned long pot_size;
-    unsigned long nb_fights;
-    unsigned long nb_refills;
+    const unsigned long nb_villagers;
+    const unsigned long pot_size;
+    const unsigned long nb_fights;
+    const unsigned long nb_refills;
 
-    pthread_mutex_t mutex;
     villager_t *villagers;
     pthread_t tdruid;
-    bool druid_awake;
 
+    bool druid_awake;
+    unsigned long pot;
+
+    pthread_mutex_t mutex;
     sem_t sem_druid;
     sem_t sem_villagers;
-
-    unsigned long pot;
-    unsigned long refills;
 } gaule_t;
 
 int panoramix(int argc, char **argv);

@@ -82,21 +82,23 @@ static void *run_villager(villager_t *villager)
 
 static void *run_drouid(gaule_t *gaule)
 {
+    size_t refills = 0;
+
     printf("Druid: I'm ready... but sleepy...\n");
     while (true) {
         sem_wait(&gaule->sem_druid);
-        if (gaule->refills >= gaule->nb_refills) {
+        if (refills >= gaule->nb_refills) {
             printf("Druid: I'm out of viscum. I'm going back to... zZz\n");
             gaule->druid_awake = false;
             sem_post(&gaule->sem_villagers);
             return NULL;
         }
         gaule->pot = gaule->pot_size;
-        gaule->refills++;
+        refills += 1;
         printf(
             "Druid: Ah! Yes, yes, I'm awake! Working on it! Beware I can "
             "only make %lu more refills after this one.\n",
-            gaule->nb_refills - gaule->refills);
+            gaule->nb_refills - refills);
         sem_post(&gaule->sem_villagers);
     }
     return gaule;
